@@ -1,0 +1,14 @@
+[
+  { "id": "qwen-image", "name": "qwen-image", "free": false },
+  { "id": "qwen-image-edit", "name": "qwen-image-edit", "free": false, "upstream_id": "qwen-image", "upstream_url": "https://chutes-qwen-image-edit-2509.chutes.ai/generate" },
+  {
+    "id": "hunyuan-image-3",
+    "name": "hunyuan-image-3",
+    "free": false,
+    "minimal": true,
+    "upstream_url": "https://chutes-hunyuan-image-3.chutes.ai/generate"
+  },
+  { "id": "novafurry/NovaFurryXL", "name": "NovaFurryXL", "free": false },
+  { "id": "hidream", "name": "hidream", "free": false, "upstream_url": "https://chutes-hidream.chutes.ai/generate" },
+  { "id": "z-image-turbo", "name": "Z-Image-Turbo", "free": false, "upstream_url": "https://chutes-z-image-turbo.chutes.ai/generate" }
+]

@@ -1,0 +1,39 @@
+﻿{
+    "name":  "chutes-image-app",
+    "version":  "1.0.0",
+    "private":  true,
+    "description":  "Full-stack image generation client for chutes.ai with model list and adjustable parameters, ready for local and cloud deployment.",
+    "main":  "server.js",
+    "scripts":  {
+                    "dev":  "nodemon server.js",
+                    "start":  "node server.js",
+                    "postinstall":  "echo No build step",
+                    "ps-start":  "powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./scripts/start-local.ps1",
+                    "ps-start-token":  "powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./scripts/start-local.ps1 $env:CHUTES_API_TOKEN",
+                    "ps-stop":  "powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./scripts/stop-local.ps1",
+                    "ps-stop-3000":  "powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File ./scripts/stop-local.ps1 3000",
+                    "win-start":  "scripts\\start-local.cmd"
+                },
+    "dependencies":  {
+                         "axios":  "^1.7.7",
+                         "compression":  "^1.7.4",
+                         "cors":  "^2.8.5",
+                         "dotenv":  "^16.4.5",
+                         "express":  "^4.19.2",
+                         "helmet":  "^7.1.0",
+                         "morgan":  "^1.10.0"
+                     },
+    "devDependencies":  {
+                            "nodemon":  "^3.1.0"
+                        },
+    "engines":  {
+                    "node":  "\u003e=18"
+                },
+    "keywords":  [
+                     "chutes",
+                     "image-generation",
+                     "express",
+                     "fullstack"
+                 ],
+    "license":  "MIT"
+}

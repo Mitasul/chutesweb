@@ -1,0 +1,1913 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chutes 图像生成</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --fg: #1e293b;
+      --card: #ffffff;
+      --muted: #64748b;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --border: #e2e8f0;
+      --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    [data-theme="dark"] {
+      --bg: #0f0f23;
+      --fg: #e2e8f0;
+      --card: #1a1a2e;
+      --muted: #94a3b8;
+      --accent: #7c3aed;
+      --accent-hover: #6d28d9;
+      --border: #2d2d44;
+      --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+    }
+    
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+    
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      line-height: 1.5;
+    }
+    
+    /* Header Styles */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--card);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(8px);
+      box-shadow: var(--shadow);
+    }
+    
+    header h1 {
+      font-size: 14px;
+      margin: 0;
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      padding: 3px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background-clip: text;
+      flex-shrink: 0;
+    }
+    
+    .controls {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: nowrap;
+    }
+    
+    .toggle-group {
+      display: flex;
+      gap: 4px;
+    }
+    
+    .toggle-btn {
+      padding: 4px 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--bg);
+      color: var(--fg);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      user-select: none;
+      min-height: 28px;
+    }
+    
+    .toggle-btn:hover {
+      background: var(--accent);
+      color: white;
+      transform: translateY(-1px);
+      box-shadow: var(--shadow);
+    }
+    
+    .toggle-btn.active {
+      background: var(--accent);
+      color: white;
+      box-shadow: var(--shadow);
+    }
+    
+    .api-input {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--bg);
+      font-size: 11px;
+      transition: all 0.2s ease;
+    }
+    
+    .api-input:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+    
+    .api-input input {
+      border: none;
+      background: transparent;
+      color: var(--fg);
+      width: 140px;
+      padding: 2px;
+      font-size: 11px;
+    }
+    
+    .api-input input:focus { outline: none; }
+    
+    /* Mobile Menu Toggle */
+    .mobile-menu-toggle {
+      display: none;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--fg);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+      min-height: 28px;
+    }
+    
+    .mobile-menu-toggle:hover {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    
+    /* Main Layout */
+    main {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 16px;
+      padding: 16px;
+      min-height: calc(100vh - 80px);
+    }
+    
+    /* Panel Styles */
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+      transition: all 0.3s ease;
+    }
+    
+    .panel.results {
+      overflow: auto;
+      max-height: calc(100vh - 120px);
+    }
+    
+    .panel:hover {
+      box-shadow: var(--shadow-lg);
+    }
+    
+    /* Form Styles */
+    .group {
+      margin-bottom: 16px;
+    }
+    
+    .group label {
+      display: block;
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-weight: 500;
+      letter-spacing: 0.025em;
+    }
+    
+    .group input, .group select, .group textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--fg);
+      font-size: 14px;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+    
+    .group input:focus, .group select:focus, .group textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      transform: translateY(-1px);
+    }
+    
+    .group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    
+    .row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    /* Button Styles */
+    button {
+      background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 12px 20px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      user-select: none;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    button.secondary {
+      background: var(--bg);
+      color: var(--fg);
+      border: 1px solid var(--border);
+    }
+    
+    button.secondary:hover {
+      background: var(--border);
+      border-color: var(--accent);
+    }
+    
+    .seed-toggle {
+      background: var(--bg);
+      color: var(--fg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 16px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      width: 100%;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .seed-toggle.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+      box-shadow: var(--shadow);
+    }
+    
+    .seed-toggle:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow);
+    }
+    
+    .status {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    
+    /* Gallery Styles */
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow);
+    }
+    
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .card img {
+      width: 100%;
+      display: block;
+      aspect-ratio: 1;
+      object-fit: cover;
+      cursor: pointer;
+      transition: opacity 0.2s ease;
+    }
+    
+    .card img:hover {
+      opacity: 0.9;
+    }
+    
+    .card .meta {
+      padding: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    
+    .placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 120px;
+      color: var(--muted);
+      font-size: 14px;
+      background: var(--bg);
+      border-radius: 6px;
+      margin: 8px;
+    }
+    
+    /* Sidebar for mobile */
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: -100%;
+      width: 320px;
+      height: 100vh;
+      background: var(--card);
+      border-right: 1px solid var(--border);
+      z-index: 200;
+      transition: left 0.3s ease;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .sidebar.open {
+      left: 0;
+    }
+    
+    .sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .sidebar-close {
+      background: none;
+      border: none;
+      color: var(--fg);
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      min-height: auto;
+    }
+    
+    .sidebar-close:hover {
+      background: var(--border);
+      transform: none;
+      box-shadow: none;
+    }
+    
+    .sidebar-content {
+      padding: 16px;
+    }
+    
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 150;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      pointer-events: none;
+    }
+    
+    .overlay.show {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+    
+    /* Mobile Generate Button - Draggable */
+    .mobile-generate-btn {
+      position: fixed;
+      right: 16px;
+      bottom: 80px;
+      z-index: 120;
+      background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 56px;
+      height: 56px;
+      font-size: 24px;
+      cursor: move;
+      box-shadow: var(--shadow-lg);
+      transition: all 0.3s ease;
+      display: none;
+      touch-action: none;
+      user-select: none;
+    }
+    
+    .mobile-generate-btn:hover {
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+    }
+    
+    .mobile-generate-btn:active {
+      transform: scale(0.95);
+    }
+    
+    .mobile-generate-btn.dragging {
+      transition: none;
+      z-index: 1000;
+      transform: scale(1.1);
+    }
+
+    /* Card Meta Expandable - Fixed for mobile */
+    .card .meta {
+      padding: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    
+    .card .meta-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .card .meta-toggle {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--accent);
+      cursor: pointer;
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+      min-height: 32px;
+      font-weight: 500;
+      touch-action: manipulation;
+    }
+    
+    .card .meta-toggle:hover,
+    .card .meta-toggle:active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+      transform: none;
+      box-shadow: none;
+    }
+    
+    .card .meta-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    
+    .card .meta-content.expanded {
+      max-height: 300px;
+    }
+
+    /* Mobile Responsive Styles */
+    @media (max-width: 768px) {
+      header {
+        padding: 4px 8px;
+        gap: 6px;
+      }
+      
+      header h1 {
+        font-size: 12px;
+        flex: 1;
+        text-align: center;
+        padding: 2px 6px;
+      }
+      
+      .controls {
+        display: none;
+      }
+      
+      .mobile-menu-toggle {
+        display: block;
+        order: 1;
+      }
+      
+      .mobile-generate-btn {
+        display: block;
+      }
+      
+      main {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 12px;
+        min-height: auto;
+      }
+      
+      /* Hide desktop panel on mobile */
+      #desktopPanel {
+        display: none;
+      }
+      
+      .panel.results {
+        padding: 16px;
+        border-radius: 8px;
+      }
+      
+      .gallery {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 12px;
+      }
+      
+      .card .meta {
+        padding: 12px;
+        font-size: 12px;
+      }
+      
+      button, .seed-toggle {
+        min-height: 48px;
+        font-size: 16px;
+      }
+      
+      .group input, .group select, .group textarea {
+        padding: 14px 16px;
+        font-size: 16px;
+        border-radius: 6px;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        touch-action: manipulation;
+      }
+      
+      /* 修复iOS输入框问题 */
+      .group input:focus, .group select:focus, .group textarea:focus {
+        transform: none;
+        -webkit-user-select: text;
+        user-select: text;
+      }
+      
+      .group textarea {
+        -webkit-user-select: text;
+        user-select: text;
+        resize: vertical;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      header {
+        padding: 8px 12px;
+      }
+      
+      main {
+        padding: 8px;
+        gap: 8px;
+      }
+      
+      .panel {
+        padding: 12px;
+      }
+      
+      .gallery {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      
+      .controls {
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .toggle-btn {
+        width: 100%;
+      }
+    }
+    
+    /* SVG图标样式 */
+    .icon-sparkles {
+      width: 24px;
+      height: 24px;
+      fill: currentColor;
+    }
+    
+    /* 大图预览模态框样式 */
+    .image-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      padding: 20px;
+    }
+    
+    .image-modal.show {
+      display: flex;
+    }
+    
+    .image-modal-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      font-size: 32px;
+      cursor: pointer;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      z-index: 10001;
+      min-height: auto;
+      padding: 0;
+    }
+    
+    .image-modal-close:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: scale(1.1);
+    }
+    
+    .image-modal-content {
+      max-width: 90%;
+      max-height: 85%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .image-modal-content img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+    
+    .image-modal-info {
+      color: white;
+      margin-top: 16px;
+      font-size: 14px;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 8px 16px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+<!-- SVG图标定义 -->
+<svg style="display: none;">
+  <defs>
+    <symbol id="icon-sparkles" viewBox="0 0 24 24">
+      <path d="M12 0L14.59 8.41L23 11L14.59 13.59L12 22L9.41 13.59L1 11L9.41 8.41L12 0Z"/>
+      <path d="M19 8L20.5 12.5L25 14L20.5 15.5L19 20L17.5 15.5L13 14L17.5 12.5L19 8Z" opacity="0.6"/>
+    </symbol>
+    <symbol id="icon-bell" viewBox="0 0 24 24">
+      <path d="M12 2C11.172 2 10.5 2.672 10.5 3.5V4.191C8.211 4.886 6.5 7.039 6.5 9.6V14L4.5 16V17H19.5V16L17.5 14V9.6C17.5 7.039 15.789 4.886 13.5 4.191V3.5C13.5 2.672 12.828 2 12 2ZM10 18C10 19.1 10.9 20 12 20C13.1 20 14 19.1 14 18H10Z"/>
+    </symbol>
+    <symbol id="icon-bell-off" viewBox="0 0 24 24">
+      <path d="M12 2C11.172 2 10.5 2.672 10.5 3.5V4.191C8.211 4.886 6.5 7.039 6.5 9.6V14L4.5 16V17H19.5V16L17.5 14V9.6C17.5 7.039 15.789 4.886 13.5 4.191V3.5C13.5 2.672 12.828 2 12 2ZM10 18C10 19.1 10.9 20 12 20C13.1 20 14 19.1 14 18H10Z" opacity="0.3"/>
+      <path d="M2 2L22 22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+</svg>
+<header>
+  <button class="mobile-menu-toggle" id="mobileMenuToggle">☰</button>
+  <h1>Chutes</h1>
+  <div class="controls">
+    <div class="toggle-group">
+      <button id="soundToggle" class="toggle-btn">
+        <svg width="16" height="16">
+          <use href="#icon-bell"></use>
+        </svg>
+      </button>
+      <button id="themeToggle" class="toggle-btn">主题</button>
+    </div>
+    <div class="api-input">
+      <span>密钥</span>
+      <input type="password" id="apiKeyInput" placeholder="API 密钥">
+    </div>
+  </div>
+</header>
+
+<!-- Mobile Sidebar -->
+<div class="overlay" id="overlay"></div>
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h3 style="margin: 0; font-size: 16px;">参数设置</h3>
+    <button class="sidebar-close" id="sidebarClose">✕</button>
+  </div>
+  <div class="sidebar-content">
+    <div class="group">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <button id="soundToggleMobile" class="toggle-btn">
+          <svg width="16" height="16" style="margin-right: 4px;">
+            <use href="#icon-bell"></use>
+          </svg>
+          <span>提示音</span>
+        </button>
+        <button id="themeToggleMobile" class="toggle-btn">主题</button>
+      </div>
+    </div>
+    <div class="group">
+      <label>API 密钥</label>
+      <input type="password" id="apiKeyInputMobile" placeholder="粘贴密钥" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--fg); font-size: 14px;">
+    </div>
+    <div class="group">
+      <label>模型</label>
+      <select id="modelSelectMobile"></select>
+    </div>
+    <div class="group">
+      <label>提示词</label>
+      <textarea id="promptMobile" rows="3" placeholder="例如：原神角色 插画风，清晰细节，高质量"></textarea>
+    </div>
+    <div class="group" id="groupImagesMobile">
+      <label>参考图（最多3张，仅用于 qwen-image-edit）</label>
+      <input type="file" id="imagesMobile" accept="image/*" multiple>
+      <div class="status" id="imagesStatusMobile">未选择</div>
+    </div>
+    <div class="group" id="groupTrueCfgMobile">
+      <label>True CFG 系数（qwen-image-edit）</label>
+      <input type="number" id="true_cfg_scaleMobile" step="0.1" min="0" max="10" value="4">
+    </div>
+    <div class="group">
+      <label>反向提示词</label>
+      <textarea id="negative_promptMobile" rows="2" placeholder="blurry, lowres, bad anatomy, artifacts"></textarea>
+    </div>
+    <div class="group" id="groupResolutionMobile" style="display: none;">
+      <label>分辨率（仅 hidream）</label>
+      <select id="resolutionMobile">
+        <option value="1024x1024">1024x1024</option>
+        <option value="768x1360">768x1360</option>
+        <option value="1360x768">1360x768</option>
+        <option value="880x1168">880x1168</option>
+        <option value="1168x880">1168x880</option>
+        <option value="1248x832">1248x832</option>
+        <option value="832x1248">832x1248</option>
+      </select>
+    </div>
+    <div class="group form-grid">
+      <div class="group" id="groupWidthMobile">
+        <label>宽度</label>
+        <input type="number" id="widthMobile" value="1024">
+      </div>
+      <div class="group" id="groupHeightMobile">
+        <label>高度</label>
+        <input type="number" id="heightMobile" value="1024">
+      </div>
+      <div class="group">
+        <label>指导系数</label>
+        <input type="number" id="guidance_scaleMobile" step="0.1" value="6">
+      </div>
+      <div class="group">
+        <label>推理步数</label>
+        <input type="number" id="num_inference_stepsMobile" value="40">
+      </div>
+    </div>
+    <div class="group" id="groupShiftMobile">
+      <label>Shift（Z-Image-Turbo）</label>
+      <input type="number" id="shiftMobile" step="0.1" min="1" max="10" value="3">
+    </div>
+    <div class="group" id="groupMaxSeqMobile">
+      <label>最大序列长度（Z-Image-Turbo）</label>
+      <input type="number" id="max_sequence_lengthMobile" min="256" max="2048" value="512">
+    </div>
+    <div class="group">
+      <button id="seedToggleMobile" class="seed-toggle">使用随机</button>
+    </div>
+    <div class="group">
+      <label>数量（最多10）</label>
+      <input type="number" id="batchCountMobile" value="1" placeholder="1-10">
+    </div>
+    <div class="group">
+      <label>保存位置</label>
+      <button id="chooseFolderMobile" class="secondary" type="button">选择保存文件夹</button>
+      <div class="status" id="folderStatusMobile" style="margin-top: 8px;">未选择</div>
+    </div>
+    <div class="group">
+      <button id="generateBtnMobile">生成图像</button>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile Generate Button -->
+<button class="mobile-generate-btn" id="mobileGenerateBtn">
+  <svg class="icon-sparkles">
+    <use href="#icon-sparkles"></use>
+  </svg>
+</button>
+
+<main>
+  <section class="panel" id="desktopPanel">
+    <div class="group">
+      <button id="generateBtn">生成图像</button>
+    </div>
+    <div class="group">
+      <label>模型</label>
+      <select id="modelSelect"></select>
+    </div>
+    <div class="group">
+      <label>提示词</label>
+      <textarea id="prompt" rows="2" placeholder="例如：原神角色 插画风，清晰细节，高质量"></textarea>
+    </div>
+    <div class="group" id="groupImages">
+      <label>参考图（最多3张，仅用于 qwen-image-edit）</label>
+      <input type="file" id="images" accept="image/*" multiple>
+      <div class="status" id="imagesStatus">未选择</div>
+    </div>
+    <div class="group" id="groupTrueCfg">
+      <label>True CFG 系数（qwen-image-edit）</label>
+      <input type="number" id="true_cfg_scale" step="0.1" min="0" max="10" value="4">
+    </div>
+    <div class="group">
+      <label>反向提示词</label>
+      <textarea id="negative_prompt" rows="1" placeholder="blurry, lowres, bad anatomy, artifacts"></textarea>
+    </div>
+    <div class="group" id="groupResolution" style="display: none;">
+      <label>分辨率（仅 hidream）</label>
+      <select id="resolution">
+        <option value="1024x1024">1024x1024</option>
+        <option value="768x1360">768x1360</option>
+        <option value="1360x768">1360x768</option>
+        <option value="880x1168">880x1168</option>
+        <option value="1168x880">1168x880</option>
+        <option value="1248x832">1248x832</option>
+        <option value="832x1248">832x1248</option>
+      </select>
+    </div>
+    <div class="group form-grid">
+      <div class="group" id="groupWidth">
+        <label>宽度</label>
+        <input type="number" id="width" value="1024">
+      </div>
+      <div class="group" id="groupHeight">
+        <label>高度</label>
+        <input type="number" id="height" value="1024">
+      </div>
+      <div class="group">
+        <label>指导系数</label>
+        <input type="number" id="guidance_scale" step="0.1" value="6">
+      </div>
+      <div class="group">
+        <label>推理步数</label>
+        <input type="number" id="num_inference_steps" value="40">
+      </div>
+    </div>
+    <div class="group" id="groupShift">
+      <label>Shift（Z-Image-Turbo）</label>
+      <input type="number" id="shift" step="0.1" min="1" max="10" value="3">
+    </div>
+    <div class="group" id="groupMaxSeq">
+      <label>最大序列长度（Z-Image-Turbo）</label>
+      <input type="number" id="max_sequence_length" min="256" max="2048" value="512">
+    </div>
+    <div class="group">
+      <button id="seedToggle" class="seed-toggle">使用随机</button>
+    </div>
+    <div class="group form-grid">
+      <div class="group">
+        <label>数量（最多10）</label>
+        <input type="number" id="batchCount" value="1" placeholder="1-10">
+      </div>
+      <div class="group">
+        <label>保存位置</label>
+        <button id="chooseFolder" class="secondary" type="button">选择保存文件夹</button>
+        <div class="status" id="folderStatus" style="margin-top: 2px;">未选择</div>
+      </div>
+    </div>
+  </section>
+  <section class="panel results">
+    <div class="row" style="justify-content: space-between; margin-bottom: 8px;">
+      <div class="status">生成结果</div>
+      <button id="downloadAll" class="secondary">逐个下载</button>
+    </div>
+    <div id="gallery" class="gallery"></div>
+  </section>
+</main>
+
+<!-- 大图预览模态框 -->
+<div class="image-modal" id="imageModal">
+  <button class="image-modal-close" id="imageModalClose">×</button>
+  <div class="image-modal-content">
+    <img id="imageModalImg" src="" alt="预览">
+  </div>
+  <div class="image-modal-info" id="imageModalInfo"></div>
+</div>
+
+<audio id="notify" src="/studio/new-notification-3-398649.mp3" preload="auto"></audio>
+<script>
+  const qs = s => document.querySelector(s);
+  const qsa = s => Array.from(document.querySelectorAll(s));
+  const ls = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : d; } catch(e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {} }
+  };
+
+  const state = {
+    models: [],
+    sound: true,
+    theme: 'light',
+    apiKey: '',
+    folderHandle: null,
+    seedRandom: true,
+    isMobile: window.innerWidth <= 768,
+    sidebarOpen: false,
+    imageB64s: []
+  };
+
+  function setTheme(t) {
+    const theme = t === 'dark' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    state.theme = theme;
+    ls.set('theme', theme);
+    
+    // 更新桌面端按钮
+    const btn = qs('#themeToggle');
+    if (btn) {
+      btn.classList.toggle('active', theme === 'dark');
+      btn.textContent = theme === 'dark' ? '浅色' : '深色';
+    }
+    
+    // 更新移动端按钮
+    const btnMobile = qs('#themeToggleMobile');
+    if (btnMobile) {
+      btnMobile.classList.toggle('active', theme === 'dark');
+      btnMobile.textContent = theme === 'dark' ? '浅色' : '深色';
+    }
+  }
+
+  function setSound(on) {
+    state.sound = !!on;
+    ls.set('sound', state.sound);
+    
+    // 更新桌面端按钮
+    const btn = qs('#soundToggle');
+    if (btn) {
+      btn.classList.toggle('active', state.sound);
+      const svg = btn.querySelector('svg use');
+      if (svg) {
+        svg.setAttribute('href', state.sound ? '#icon-bell' : '#icon-bell-off');
+      }
+    }
+    
+    // 更新移动端按钮
+    const btnMobile = qs('#soundToggleMobile');
+    if (btnMobile) {
+      btnMobile.classList.toggle('active', state.sound);
+      const svg = btnMobile.querySelector('svg use');
+      const span = btnMobile.querySelector('span');
+      if (svg) {
+        svg.setAttribute('href', state.sound ? '#icon-bell' : '#icon-bell-off');
+      }
+      if (span) {
+        span.textContent = state.sound ? '开启' : '关闭';
+      }
+    }
+  }
+
+  function setApiKey(k) {
+    state.apiKey = (k || '').trim();
+    ls.set('apiKey', state.apiKey);
+    const el = qs('#apiKeyInput');
+    if (el && el.value !== state.apiKey) el.value = state.apiKey;
+    const elMobile = qs('#apiKeyInputMobile');
+    if (elMobile && elMobile.value !== state.apiKey) elMobile.value = state.apiKey;
+  }
+
+  function updateSeedToggle() {
+    const buttons = ['#seedToggle', '#seedToggleMobile'];
+    buttons.forEach(selector => {
+      const btn = qs(selector);
+      if (btn) {
+        btn.classList.toggle('active', state.seedRandom);
+        btn.textContent = state.seedRandom ? '使用随机' : '固定种子';
+      }
+    });
+  }
+
+  function genRandomSeed() {
+    return Math.floor(Math.random() * 4294967295);
+  }
+
+  async function fetchModels() {
+    try {
+      const r = await fetch('/api/models', {
+        headers: state.apiKey ? { 'x-api-key': state.apiKey } : {}
+      });
+      const j = await r.json();
+      state.models = (j.models || []).map(m => ({
+        id: String(m.id || m.name || ''),
+        name: String(m.name || m.id || '')
+      }));
+      renderModels();
+    } catch(e) {
+      console.error('获取模型列表失败:', e);
+    }
+  }
+
+  function renderModels() {
+    const selectors = ['#modelSelect', '#modelSelectMobile'];
+    selectors.forEach(selector => {
+      const sel = qs(selector);
+      if (sel) {
+        sel.innerHTML = '';
+        state.models.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.id;
+          opt.textContent = m.name;
+          sel.appendChild(opt);
+        });
+        const last = ls.get('lastParams', null);
+        if (last && last.model) sel.value = last.model;
+      }
+    });
+    updateVisibleFieldsFor('');
+    updateVisibleFieldsFor('Mobile');
+  }
+
+  function toggleGroup(selector, show) {
+    const el = qs(selector);
+    if (!el) return;
+    el.style.display = show ? '' : 'none';
+  }
+
+  function updateVisibleFieldsFor(suffix) {
+    const sel = qs(`#modelSelect${suffix}`);
+    if (!sel) return;
+    const model = String(sel.value || '').toLowerCase();
+    const isQwenEdit = model === 'qwen-image-edit';
+    const isHidream = model === 'hidream';
+    const isZ = model === 'z-image-turbo';
+
+    toggleGroup(`#groupImages${suffix}`, isQwenEdit);
+    toggleGroup(`#groupTrueCfg${suffix}`, isQwenEdit);
+
+    // hidream 使用分辨率；隐藏宽高，显示分辨率下拉
+    toggleGroup(`#groupWidth${suffix}`, !isHidream);
+    toggleGroup(`#groupHeight${suffix}`, !isHidream);
+    toggleGroup(`#groupResolution${suffix}`, isHidream);
+
+    // Z-Image-Turbo 专属参数
+    toggleGroup(`#groupShift${suffix}`, isZ);
+    toggleGroup(`#groupMaxSeq${suffix}`, isZ);
+  }
+
+  function currentParams() {
+    const isMobile = window.innerWidth <= 768;
+    const prefix = isMobile ? 'Mobile' : '';
+    return {
+      model: qs(`#modelSelect${prefix}`).value || '',
+      prompt: (qs(`#prompt${prefix}`).value || '').trim(),
+      negative_prompt: (qs(`#negative_prompt${prefix}`).value || '').trim(),
+      width: Number(qs(`#width${prefix}`).value) || 1024,
+      height: Number(qs(`#height${prefix}`).value) || 1024,
+      guidance_scale: Number(qs(`#guidance_scale${prefix}`).value) || 6,
+      num_inference_steps: Number(qs(`#num_inference_steps${prefix}`).value) || 20,
+      true_cfg_scale: Number(qs(`#true_cfg_scale${prefix}`)?.value) || 4,
+      image_b64s: state.imageB64s ? state.imageB64s.slice(0, 3) : [],
+      seed: state.seedRandom ? null : 0,
+      resolution: (qs(`#resolution${prefix}`) && qs(`#resolution${prefix}`).value) || ''
+    };
+  }
+
+  function createPlaceholderCard(i, params) {
+    const wrap = document.createElement('div');
+    wrap.className = 'card';
+    const ph = document.createElement('div');
+    ph.className = 'placeholder';
+    ph.textContent = `生成中 #${i}`;
+    wrap.appendChild(ph);
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.innerHTML = `${params.model} | ${params.width}x${params.height}`;
+    wrap.appendChild(meta);
+    qs('#gallery').prepend(wrap);
+    return wrap;
+  }
+
+  function updateCardWithImage(wrap, dataUrl, params, filename) {
+    wrap.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = dataUrl;
+    img.alt = params.prompt || 'image';
+    
+    // 添加点击放大功能
+    img.addEventListener('click', () => {
+      showImageModal(dataUrl, params);
+    });
+    
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    
+    const metaHeader = document.createElement('div');
+    metaHeader.className = 'meta-header';
+    metaHeader.innerHTML = `
+      <div style="font-weight: 600;">${params.model}</div>
+    `;
+    
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'meta-toggle';
+    toggleBtn.textContent = '详情';
+    toggleBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleCardMeta(this);
+    });
+    toggleBtn.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleCardMeta(this);
+    });
+    
+    metaHeader.appendChild(toggleBtn);
+    
+    const metaContent = document.createElement('div');
+    metaContent.className = 'meta-content';
+    metaContent.innerHTML = `
+      <div style="margin-bottom: 4px;">尺寸: ${params.width}x${params.height}</div>
+      <div style="margin-bottom: 4px;">步数: ${params.num_inference_steps} | 引导: ${params.guidance_scale}</div>
+      <div style="margin-bottom: 8px; font-size: 12px; line-height: 1.3; word-break: break-all;">${params.prompt}</div>
+      <div class="row">
+        <button class="secondary" onclick="downloadImageMobile('${filename}', '${dataUrl}')">下载</button>
+      </div>
+    `;
+    
+    meta.appendChild(metaHeader);
+    meta.appendChild(metaContent);
+    wrap.appendChild(img);
+    wrap.appendChild(meta);
+  }
+
+  // 切换卡片详情显示 - 修复移动端点击问题
+  function toggleCardMeta(button) {
+    const metaContent = button.parentElement.nextElementSibling;
+    const isExpanded = metaContent.classList.contains('expanded');
+    
+    if (isExpanded) {
+      metaContent.classList.remove('expanded');
+      button.textContent = '详情';
+    } else {
+      metaContent.classList.add('expanded');
+      button.textContent = '收起';
+    }
+  }
+
+  // 拖拽功能
+  let dragState = {
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+    currentX: 0,
+    currentY: 0,
+    initialX: 0,
+    initialY: 0
+  };
+
+  function initDragButton() {
+    const btn = qs('#mobileGenerateBtn');
+    if (!btn) return;
+
+    // 鼠标事件
+    btn.addEventListener('mousedown', startDrag);
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', endDrag);
+
+    // 触摸事件
+    btn.addEventListener('touchstart', startDrag, { passive: false });
+    document.addEventListener('touchmove', drag, { passive: false });
+    document.addEventListener('touchend', endDrag);
+    document.addEventListener('touchcancel', endDrag, { passive: false });
+    btn.addEventListener('touchcancel', endDrag);
+  }
+
+  function startDrag(e) {
+    const btn = qs('#mobileGenerateBtn');
+    if (!btn) return;
+
+    dragState.isDragging = true;
+    btn.classList.add('dragging');
+
+    if (e.type === 'touchstart') {
+      dragState.startX = e.touches[0].clientX;
+      dragState.startY = e.touches[0].clientY;
+    } else {
+      dragState.startX = e.clientX;
+      dragState.startY = e.clientY;
+    }
+
+    const rect = btn.getBoundingClientRect();
+    dragState.initialX = rect.left;
+    dragState.initialY = rect.top;
+    dragState.currentX = rect.left;
+    dragState.currentY = rect.top;
+
+    e.preventDefault();
+  }
+
+  function drag(e) {
+    if (!dragState.isDragging) return;
+
+    e.preventDefault();
+
+    let clientX, clientY;
+    if (e.type === 'touchmove') {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+
+    dragState.currentX = dragState.initialX + (clientX - dragState.startX);
+    dragState.currentY = dragState.initialY + (clientY - dragState.startY);
+
+    // 限制在屏幕范围内
+    const btn = qs('#mobileGenerateBtn');
+    const maxX = window.innerWidth - 60;
+    const maxY = window.innerHeight - 60;
+    const headerH = (qs('header') && qs('header').offsetHeight) || 0;
+    const minY = headerH + 8;
+
+    dragState.currentX = Math.max(0, Math.min(maxX, dragState.currentX));
+    dragState.currentY = Math.max(minY, Math.min(maxY, dragState.currentY));
+
+    btn.style.left = dragState.currentX + 'px';
+    btn.style.top = dragState.currentY + 'px';
+    btn.style.transform = 'none';
+  }
+
+  function endDrag(e) {
+    const btn = qs('#mobileGenerateBtn');
+    if (!btn) return;
+
+    const wasDragging = dragState.isDragging;
+    
+    // 立即清除拖拽状态
+    dragState.isDragging = false;
+    btn.classList.remove('dragging');
+
+    if (!wasDragging) return;
+
+    // 如果移动距离很小，视为点击
+    const moveDistance = Math.sqrt(
+      Math.pow(dragState.currentX - dragState.initialX, 2) +
+      Math.pow(dragState.currentY - dragState.initialY, 2)
+    );
+
+    if (moveDistance < 10) {
+      // 触发生成
+      setTimeout(() => generate(), 50);
+    }
+
+    // 保存位置
+    ls.set('generateBtnPosition', {
+      x: dragState.currentX || dragState.initialX,
+      y: dragState.currentY || dragState.initialY
+    });
+  }
+
+  // 恢复按钮位置
+  function restoreButtonPosition() {
+    const btn = qs('#mobileGenerateBtn');
+    if (!btn) return;
+
+    const savedPos = ls.get('generateBtnPosition', null);
+    const headerH = (qs('header') && qs('header').offsetHeight) || 0;
+    const minY = headerH + 8;
+    const maxX = window.innerWidth - 60;
+    const maxY = window.innerHeight - 60;
+
+    let x, y;
+    if (savedPos) {
+      x = Math.max(0, Math.min(maxX, savedPos.x));
+      y = Math.max(minY, Math.min(maxY, savedPos.y));
+    } else {
+      // 默认位置：右下角
+      x = window.innerWidth - 72;
+      y = window.innerHeight - 136;
+    }
+    btn.style.left = x + 'px';
+    btn.style.top = y + 'px';
+    btn.style.transform = 'none';
+  }
+
+  // 移动端优化的下载函数
+  function downloadImageMobile(filename, dataUrl) {
+    // 检测是否为移动端
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      // 移动端直接触发下载
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = filename;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      // 显示提示
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: var(--accent);
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        z-index: 1000;
+        font-size: 14px;
+      `;
+      toast.textContent = '图片已开始下载';
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        document.body.removeChild(toast);
+      }, 2000);
+    } else {
+      // 桌面端使用原有逻辑
+      downloadImage(filename, dataUrl);
+    }
+  }
+
+  function removeCard(wrap) {
+    try { wrap.remove(); } catch(e) {}
+  }
+
+  function dataURLtoBlob(dataUrl) {
+    const arr = dataUrl.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8 = new Uint8Array(n);
+    while(n--) { u8[n] = bstr.charCodeAt(n); }
+    return new Blob([u8], { type: mime });
+  }
+
+  // 将文件读取为去掉 data: 前缀的纯 base64，限制最多3张
+  async function filesToBase64Raw(fileList) {
+    const files = Array.from(fileList).slice(0, 3);
+    const arr = [];
+    for (const f of files) {
+      const b64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const s = String(reader.result || '');
+          const idx = s.indexOf(',');
+          resolve(idx >= 0 ? s.slice(idx + 1) : s);
+        };
+        reader.onerror = () => reject(reader.error || new Error('read failed'));
+        reader.readAsDataURL(f);
+      });
+      arr.push(b64);
+    }
+    return arr;
+  }
+
+  function handleImagesChange(inputEl, statusElId) {
+    try {
+      const files = inputEl && inputEl.files ? inputEl.files : [];
+      if (!files || files.length === 0) {
+        state.imageB64s = [];
+        const st = qs('#' + statusElId);
+        if (st) st.textContent = '未选择';
+        return;
+      }
+      filesToBase64Raw(files).then(list => {
+        state.imageB64s = list;
+        const st = qs('#' + statusElId);
+        if (st) st.textContent = '已选择 ' + list.length + ' 张';
+      }).catch(() => {});
+    } catch(e) {}
+  }
+
+  async function saveToChosenFolder(filename, dataUrl) {
+    if (!state.folderHandle) return false;
+    try {
+      const fileHandle = await state.folderHandle.getFileHandle(filename, { create: true });
+      const writable = await fileHandle.createWritable();
+      await writable.write(dataURLtoBlob(dataUrl));
+      await writable.close();
+      return true;
+    } catch(e) {
+      console.warn('保存失败:', e);
+      return false;
+    }
+  }
+
+  function downloadImage(filename, dataUrl) {
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  async function chooseFolder() {
+    try {
+      if (!('showDirectoryPicker' in window)) {
+        qs('#folderStatus').textContent = '浏览器不支持';
+        qs('#folderStatusMobile').textContent = '浏览器不支持';
+        return;
+      }
+      const handle = await window.showDirectoryPicker();
+      state.folderHandle = handle;
+      qs('#folderStatus').textContent = '已选择';
+      qs('#folderStatusMobile').textContent = '已选择';
+    } catch(e) {
+      qs('#folderStatus').textContent = '未选择';
+      qs('#folderStatusMobile').textContent = '未选择';
+    }
+  }
+
+  // 移动端侧边栏控制
+  function toggleSidebar() {
+    state.sidebarOpen = !state.sidebarOpen;
+    const sidebar = qs('#sidebar');
+    const overlay = qs('#overlay');
+    
+    if (state.sidebarOpen) {
+      sidebar.classList.add('open');
+      overlay.classList.add('show');
+      syncFormData('desktop', 'mobile');
+    } else {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('show');
+      syncFormData('mobile', 'desktop');
+    }
+  }
+
+  function closeSidebar() {
+    state.sidebarOpen = false;
+    qs('#sidebar').classList.remove('open');
+    qs('#overlay').classList.remove('show');
+    syncFormData('mobile', 'desktop');
+  }
+
+  // 同步表单数据
+  function syncFormData(from, to) {
+    const fromPrefix = from === 'mobile' ? 'Mobile' : '';
+    const toPrefix = to === 'mobile' ? 'Mobile' : '';
+    
+    const fields = ['modelSelect', 'prompt', 'negative_prompt', 'width', 'height', 'guidance_scale', 'num_inference_steps', 'batchCount'];
+    
+    fields.forEach(field => {
+      const fromEl = qs(`#${field}${fromPrefix}`);
+      const toEl = qs(`#${field}${toPrefix}`);
+      if (fromEl && toEl && fromEl.value !== toEl.value) {
+        toEl.value = fromEl.value;
+      }
+    });
+  }
+  
+  // 实时同步移动端输入到桌面端
+  function setupRealtimeSync() {
+    const fields = ['modelSelect', 'prompt', 'negative_prompt', 'width', 'height', 'guidance_scale', 'num_inference_steps', 'batchCount'];
+    
+    fields.forEach(field => {
+      const mobileEl = qs(`#${field}Mobile`);
+      const desktopEl = qs(`#${field}`);
+      
+      if (mobileEl && desktopEl) {
+        // 添加输入事件监听
+        const eventType = mobileEl.tagName === 'SELECT' ? 'change' : 'input';
+        mobileEl.addEventListener(eventType, () => {
+          desktopEl.value = mobileEl.value;
+        });
+      }
+    });
+  }
+
+  // 响应式检测
+  function checkMobile() {
+    const wasMobile = state.isMobile;
+    state.isMobile = window.innerWidth <= 768;
+    
+    if (wasMobile !== state.isMobile && state.sidebarOpen) {
+      closeSidebar();
+    }
+
+    // Clamp floating button inside viewport and below header when geometry changes
+    const btn = qs('#mobileGenerateBtn');
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      const maxX = window.innerWidth - 60;
+      const maxY = window.innerHeight - 60;
+      const headerH = (qs('header') && qs('header').offsetHeight) || 0;
+      const minY = headerH + 8;
+      let x = rect.left;
+      let y = rect.top;
+      x = Math.max(0, Math.min(maxX, x));
+      y = Math.max(minY, Math.min(maxY, y));
+      btn.style.left = x + 'px';
+      btn.style.top = y + 'px';
+      btn.style.transform = 'none';
+    }
+  }
+
+  async function generate() {
+    const p = currentParams();
+    if (!p.model || !p.prompt) {
+      alert('模型与提示词必填');
+      return;
+    }
+    // qwen-image-edit 需要至少一张参考图
+    if ((p.model || '').toLowerCase() === 'qwen-image-edit' && (!state.imageB64s || state.imageB64s.length < 1)) {
+      alert('qwen-image-edit 需要至少 1 张参考图');
+      return;
+    }
+    
+    const isMobile = window.innerWidth <= 768;
+    const batchElement = qs(isMobile ? '#batchCountMobile' : '#batchCount');
+    const countRaw = Number(batchElement.value || 1);
+    const count = Math.max(1, Math.min(10, Number.isFinite(countRaw) ? Math.trunc(countRaw) : 1));
+    
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(state.apiKey ? { 'x-api-key': state.apiKey } : {})
+    };
+
+    const tasks = [];
+    for (let i = 1; i <= count; i++) {
+      const placeholder = createPlaceholderCard(i, p);
+      const isQwenEdit = (p.model || '').toLowerCase() === 'qwen-image-edit';
+      const argsBase = {
+        prompt: p.prompt,
+        negative_prompt: p.negative_prompt || '',
+        guidance_scale: p.guidance_scale,
+        num_inference_steps: p.num_inference_steps,
+        seed: state.seedRandom ? genRandomSeed() : 0
+      };
+      const args = isQwenEdit
+       ? {
+           ...argsBase,
+           width: p.width,
+           height: p.height,
+           true_cfg_scale: Number(qs(`#true_cfg_scale${isMobile ? 'Mobile' : ''}`)?.value) || 4,
+           ...(state.imageB64s && state.imageB64s.length ? { image_b64s: state.imageB64s.slice(0, 3) } : {})
+         }
+       : {
+           ...argsBase,
+           width: p.width,
+           height: p.height
+         };
+     // z-image-turbo 额外参数
+     if ((p.model || '').toLowerCase() === 'z-image-turbo') {
+       const shiftEl = qs(`#shift${isMobile ? 'Mobile' : ''}`);
+       const mslEl = qs(`#max_sequence_length${isMobile ? 'Mobile' : ''}`);
+       const shiftVal = Number(shiftEl && shiftEl.value) || 3;
+       const mslVal = Number(mslEl && mslEl.value) || 512;
+       args.shift = shiftVal;
+       args.max_sequence_length = mslVal;
+     }
+     // hidream 期望使用 resolution 字段
+      if ((p.model || '').toLowerCase() === 'hidream') {
+        args.resolution = (p.resolution && typeof p.resolution === 'string' && p.resolution.includes('x'))
+          ? p.resolution
+          : `${p.width}x${p.height}`;
+        delete args.width;
+        delete args.height;
+      }
+      const body = { model: p.model, input_args: args };
+      
+      const task = (async () => {
+        try {
+          const r = await fetch('/api/generate', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body)
+          });
+          const jr = await r.json().catch(() => ({ ok: false, error: '响应解析失败' }));
+          
+          if (!jr.ok) {
+            const msg = (jr && jr.error) ? String(jr.error) : '生成失败';
+            if (!/timeout of \d+ms exceeded/i.test(msg)) {
+              console.error('生成失败:', msg);
+            }
+            removeCard(placeholder);
+            return;
+          }
+          
+          const dataUrl = jr.image;
+          const fname = `image_${Date.now()}_${Math.random().toString(16).slice(2)}.jpg`;
+          updateCardWithImage(placeholder, dataUrl, p, fname);
+          
+          if (state.folderHandle) {
+            await saveToChosenFolder(fname, dataUrl);
+          }
+          
+          if (state.sound) {
+            const audio = qs('#notify');
+            if (audio) {
+              audio.currentTime = 0;
+              audio.play().catch(() => {});
+            }
+          }
+        } catch(e) {
+          const msg = String(e && e.message || e || '请求失败');
+          if (!/timeout of \d+ms exceeded/i.test(msg)) {
+            console.error('请求失败:', msg);
+          }
+          removeCard(placeholder);
+        }
+      })();
+      
+      tasks.push(task);
+    }
+
+    try {
+      await Promise.allSettled(tasks);
+      ls.set('lastParams', p);
+    } catch(e) {
+      console.error('批量生成失败:', e);
+    }
+  }
+
+  function init() {
+    // 加载设置
+    setTheme(ls.get('theme', 'light'));
+    setSound(ls.get('sound', true));
+    setApiKey(ls.get('apiKey', ''));
+    updateSeedToggle();
+    
+    // 移动端侧边栏的主题和声音按钮同步
+    qs('#soundToggleMobile').addEventListener('click', () => {
+      setSound(!state.sound);
+    });
+    
+    qs('#themeToggleMobile').addEventListener('click', () => {
+      setTheme(state.theme === 'dark' ? 'light' : 'dark');
+    });
+    
+    qs('#apiKeyInputMobile').addEventListener('input', (e) => {
+      setApiKey(e.target.value);
+      const desktopInput = qs('#apiKeyInput');
+      if (desktopInput) desktopInput.value = e.target.value;
+    });
+    
+    // 桌面端事件绑定
+    qs('#themeToggle').addEventListener('click', () => {
+      setTheme(state.theme === 'dark' ? 'light' : 'dark');
+    });
+    
+    qs('#soundToggle').addEventListener('click', () => {
+      setSound(!state.sound);
+    });
+    
+    qs('#apiKeyInput').addEventListener('input', (e) => {
+      setApiKey(e.target.value);
+      const mobileInput = qs('#apiKeyInputMobile');
+      if (mobileInput) mobileInput.value = e.target.value;
+    });
+    
+    qs('#seedToggle').addEventListener('click', () => {
+      state.seedRandom = !state.seedRandom;
+      updateSeedToggle();
+    });
+    
+    qs('#chooseFolder').addEventListener('click', chooseFolder);
+    qs('#generateBtn').addEventListener('click', generate);
+    // 模型切换时动态显示/隐藏特定参数 + Z-Image-Turbo 默认参数
+    const ms = qs('#modelSelect');
+    if (ms) ms.addEventListener('change', () => {
+      updateVisibleFieldsFor('');
+      const m = (qs('#modelSelect').value || '').toLowerCase();
+      if (m === 'z-image-turbo') {
+        const gs = qs('#guidance_scale'); if (gs) gs.value = '0';
+        const steps = qs('#num_inference_steps'); if (steps) steps.value = '9';
+        const w = qs('#width'); if (w) w.value = String(Math.max(576, Math.floor((Number(w.value)||1024)/8)*8));
+        const h = qs('#height'); if (h) h.value = String(Math.max(576, Math.floor((Number(h.value)||1024)/8)*8));
+        const sh = qs('#shift'); if (sh) sh.value = '3';
+        const msl = qs('#max_sequence_length'); if (msl) msl.value = '512';
+      }
+    });
+
+    // 参考图选择事件
+    const imagesEl = qs('#images');
+    if (imagesEl) imagesEl.addEventListener('change', () => handleImagesChange(imagesEl, 'imagesStatus'));
+    const imagesElM = qs('#imagesMobile');
+    if (imagesElM) imagesElM.addEventListener('change', () => handleImagesChange(imagesElM, 'imagesStatusMobile'));
+    
+    // 移动端事件绑定
+    qs('#mobileMenuToggle').addEventListener('click', toggleSidebar);
+    qs('#sidebarClose').addEventListener('click', closeSidebar);
+    qs('#overlay').addEventListener('click', closeSidebar);
+    
+    qs('#seedToggleMobile').addEventListener('click', () => {
+      state.seedRandom = !state.seedRandom;
+      updateSeedToggle();
+    });
+    
+    qs('#chooseFolderMobile').addEventListener('click', chooseFolder);
+    qs('#generateBtnMobile').addEventListener('click', () => {
+      // 先同步数据再生成
+      syncFormData('mobile', 'desktop');
+      generate();
+      closeSidebar();
+    });
+    const msm = qs('#modelSelectMobile');
+    if (msm) msm.addEventListener('change', () => {
+      updateVisibleFieldsFor('Mobile');
+      const m = (qs('#modelSelectMobile').value || '').toLowerCase();
+      if (m === 'z-image-turbo') {
+        const gs = qs('#guidance_scaleMobile'); if (gs) gs.value = '0';
+        const steps = qs('#num_inference_stepsMobile'); if (steps) steps.value = '9';
+        const w = qs('#widthMobile'); if (w) w.value = String(Math.max(576, Math.floor((Number(w.value)||1024)/8)*8));
+        const h = qs('#heightMobile'); if (h) h.value = String(Math.max(576, Math.floor((Number(h.value)||1024)/8)*8));
+        const sh = qs('#shiftMobile'); if (sh) sh.value = '3';
+        const msl = qs('#max_sequence_lengthMobile'); if (msl) msl.value = '512';
+      }
+    });
+    
+    // 初始化拖拽功能
+    initDragButton();
+    restoreButtonPosition();
+    
+    // 设置实时同步
+    setupRealtimeSync();
+    
+    // 通用事件绑定
+    qs('#downloadAll').addEventListener('click', () => {
+      qsa('#gallery img').forEach((img, i) => {
+        downloadImage(`image_${i+1}.jpg`, img.src);
+      });
+    });
+    
+    // 键盘事件
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !state.sidebarOpen) generate();
+      if (e.key === 'Escape' && state.sidebarOpen) closeSidebar();
+    });
+    
+    // 响应式检测
+    window.addEventListener('resize', checkMobile);
+    checkMobile();
+
+    // 页面可见性/生命周期：防止后台恢复后拖拽状态卡住，导致无法点击输入框
+    window.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        // 页面恢复可见时，强制清除拖拽状态
+        if (typeof dragState !== 'undefined') {
+          dragState.isDragging = false;
+          const btn = qs('#mobileGenerateBtn');
+          if (btn) btn.classList.remove('dragging');
+        }
+      }
+    });
+    
+    window.addEventListener('pagehide', () => {
+      if (typeof dragState !== 'undefined') {
+        dragState.isDragging = false;
+        const btn = qs('#mobileGenerateBtn');
+        if (btn) btn.classList.remove('dragging');
+      }
+    });
+    
+    window.addEventListener('blur', () => {
+      if (typeof dragState !== 'undefined') {
+        dragState.isDragging = false;
+        const btn = qs('#mobileGenerateBtn');
+        if (btn) btn.classList.remove('dragging');
+      }
+    });
+    
+    // 强制在页面获得焦点时清除拖拽状态
+    window.addEventListener('focus', () => {
+      if (typeof dragState !== 'undefined') {
+        dragState.isDragging = false;
+        const btn = qs('#mobileGenerateBtn');
+        if (btn) btn.classList.remove('dragging');
+      }
+    });
+    
+    document.addEventListener('touchcancel', endDrag, { passive: false });
+
+    // 加载模型
+    fetchModels();
+  }
+
+  // 大图预览功能
+  function showImageModal(imageUrl, params) {
+    const modal = qs('#imageModal');
+    const modalImg = qs('#imageModalImg');
+    const modalInfo = qs('#imageModalInfo');
+    
+    modalImg.src = imageUrl;
+    if (params) {
+      modalInfo.textContent = `${params.width}×${params.height} | ${params.model}`;
+    } else {
+      modalInfo.textContent = '';
+    }
+    modal.classList.add('show');
+    
+    // 阻止背景滚动
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeImageModal() {
+    const modal = qs('#imageModal');
+    modal.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+
+  // 设置模态框事件监听
+  function setupImageModal() {
+    const modal = qs('#imageModal');
+    const closeBtn = qs('#imageModalClose');
+    const modalImg = qs('#imageModalImg');
+    
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeImageModal();
+      });
+    }
+    
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          closeImageModal();
+        }
+      });
+    }
+    
+    if (modalImg) {
+      modalImg.addEventListener('click', closeImageModal);
+    }
+    
+    // ESC键关闭
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('show')) {
+        closeImageModal();
+      }
+    });
+  }
+
+  init();
+  setupImageModal();
+</script>
+</body>
+</html>
